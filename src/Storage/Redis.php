@@ -17,16 +17,20 @@ class Redis implements StorageInterface
     private $cookies = [];
 
     /** @var array */
-    private $auths;
+    private $auths = [];
+
+    private $nickname = [];
 
     private $_cookieName = 'QQBOT:COOKIE';
     private $_authName = 'QQBOT:AUTH';
+    private $_prefix = 'QQBOT:';
 
     public function __construct()
     {
         $this->redis = new \Redis();
         $this->redis->connect('127.0.0.1');
-        $this->clear();
+        $this->redis->auth('123456');
+        //$this->clear();
     }
 
     public function setPreFix($value)
@@ -104,8 +108,22 @@ class Redis implements StorageInterface
         return $this->redis->hGetAll($this->_authName);
     }
 
+    public function setNickName($value)
+    {
+        if (empty($this->nickname)) {
+            $this->redis->set($this->_prefix . 'nickname', $value);
+            $this->nickname = $value;
+        }
+    }
+
+    public function getNickName()
+    {
+        return $this->nickname ?: $this->redis->get($this->_prefix . 'nickname');
+    }
+
     public function clear()
     {
+        //TODO 未实现
         $this->redis->hDel($this->_authName);
         $this->redis->hDel($this->_cookieName);
     }

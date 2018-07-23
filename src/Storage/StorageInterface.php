@@ -18,4 +18,7 @@ interface StorageInterface
     public function getAuth($key);
     public function setAuth($key, $value);
     public function getAuthAll();
+
+    public function setNickName($value);
+    public function getNickName();
 }

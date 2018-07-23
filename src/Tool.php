@@ -31,4 +31,9 @@ class Tool
         $t = ($v & 0xFFFFFFFF) << ($n & 0x1F);
         return $t & 0x80000000 ? $t | 0xFFFFFFFF00000000 : $t & 0xFFFFFFFF;
     }
+
+    public static function hash($uin, $ptwebqq)
+    {
+        // TODO 待实现
+    }
 }

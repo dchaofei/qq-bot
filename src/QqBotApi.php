@@ -10,11 +10,19 @@ namespace QqBot;
 
 
 use QqBot\Message\Message;
+use QqBot\MessageSource\Discu;
+use QqBot\MessageSource\Friend;
+use QqBot\MessageSource\Group;
+use QqBot\MessageSource\MessageAbstract;
 use QqBot\Storage\Redis;
 use QqBot\Storage\StorageInterface;
 
 class QqBotApi
 {
+    const FRIEND = 'friend';
+    const GROUP = 'group';
+    const DISCU = 'discu';
+
     const XLOGIN = "https://xui.ptlogin2.qq.com/cgi-bin/xlogin?daid=164&target=self&style=40&pt_disable_pwd=1&mibao_css=m_webqq&appid=501004106&enable_qlogin=0&no_verifyimg=1&s_url=http://web2.qq.com/proxy.html&f_url=loginerroralert&strong_login=1&login_state=10&t=20131024001";
     const QR = "https://ssl.ptlogin2.qq.com/ptqrshow?appid=501004106&e=2&l=M&s=3&d=72&v=4&t=0.5053282138300335&daid=164&pt_3rd_aid=0";
     const LOGIN = "https://ssl.ptlogin2.qq.com/ptqrlogin";
@@ -23,6 +31,15 @@ class QqBotApi
 
     // 获取消息接口
     const POLL = "http://d1.web2.qq.com/channel/poll2";
+    // 发送好友消息
+    const FRIEND_MESSAGE = "http://d1.web2.qq.com/channel/send_buddy_msg2";
+    // 发送群消息
+    const GROUP_MESSAGE = "http://d1.web2.qq.com/channel/send_qun_msg2";
+    // 发送讨论组消息
+    const DISCU_MESSAGE = "http://d1.web2.qq.com/channel/send_discu_msg2";
+
+    // 获取好友列表
+    const FRIENDS_LIST = "http://s.web2.qq.com/api/get_user_friends2";
 
     const CLIENT_ID = 53999199;
 
@@ -38,6 +55,14 @@ class QqBotApi
     public function init()
     {
         // 这四步为登录
+        //$this->xLogin();
+        //$this->showQr();
+        //$this->getVfWebqq();
+        //$this->getPsessionidAndUin();
+    }
+
+    public function qqlogin()
+    {
         $this->xLogin();
         $this->showQr();
         $this->getVfWebqq();
@@ -70,7 +95,7 @@ class QqBotApi
         }
     }
 
-    public function getPtwebqqUrl()
+    private function getPtwebqqUrl()
     {
         $params = [
             'u1' => 'http://web2.qq.com/proxy.html',
@@ -101,19 +126,20 @@ class QqBotApi
             preg_match("/(?<url>http[^\']*)/", $res, $match);
             if ($match) {
                 echo "获取 PtwebqqUrl 成功" . PHP_EOL;
+                preg_match('/\((?<arr>.*)\)/', $res, $match2);
+                $arr = explode(',', $match2['arr']);
+                QqBotApi::$storage->setNickName(trim(trim(array_pop($arr), ' '), '\''));
                 return $match['url'];
             } else if (preg_match('/未失效/', $res) || preg_match('/认证中/', $res)) {
                 sleep(2);
                 return $this->getPtwebqqUrl();
             }
         }
-        echo $res . PHP_EOL;
         die('获取 PtwebqqURl 失败');
     }
 
-    public function getPtWebQQ()
+    private function getPtWebQQ()
     {
-        //TODO 设置 ptwebqq auth
         $url = $this->getPtwebqqUrl();
         Curl::get($url, [
             CURLOPT_COOKIE => $this->buildCookie(),
@@ -121,7 +147,7 @@ class QqBotApi
         ]);
     }
 
-    public function getVfWebqq()
+    private function getVfWebqq()
     {
         $this->getPtWebQQ();
         $params = [
@@ -130,7 +156,7 @@ class QqBotApi
             'psessionid' => '',
             't' => 0.1,
         ];
-        $url = self::VF_WEBQQ. '?' . http_build_query($params);
+        $url = self::VF_WEBQQ . '?' . http_build_query($params);
 
         $res = Curl::get($url, [
             CURLOPT_COOKIE => $this->buildCookie(),
@@ -147,9 +173,9 @@ class QqBotApi
         }
     }
 
-    public function getPsessionidAndUin()
+    private function getPsessionidAndUin()
     {
-        $params = "r=".json_encode([
+        $params = "r=" . json_encode([
                 'ptwebqq' => static::$storage->getCookie('ptwebqq') ?? '',
                 'clientid' => self::CLIENT_ID,
                 'psessionid' => '',
@@ -166,17 +192,23 @@ class QqBotApi
 
         if ($res['retcode'] == 0) {
             static::$storage->setAuth('psessionid', $res['result']['psessionid']);
-            static::$storage->setAuth('psessionid', $res['result']['uin']);
+            static::$storage->setAuth('uin', $res['result']['uin']);
             echo "登录成功!" . PHP_EOL;
+            return true;
         } else {
             die('登录失败');
         }
     }
 
 
+    /**
+     * 轮寻消息
+     *
+     * @return Discu|Friend|Group
+     */
     public function poll2()
     {
-        $params = "r=".json_encode([
+        $params = "r=" . json_encode([
                 'ptwebqq' => static::$storage->getCookie('ptwebqq') ?? '',
                 'clientid' => self::CLIENT_ID,
                 'psessionid' => '',
@@ -189,21 +221,99 @@ class QqBotApi
             CURLOPT_POSTFIELDS => $params
         ]);
         $res = json_decode($res, true);
-        print_r($res);
-        if ($res['retcode'] == 0 && $res['errmsg'] != 'error') {
-            return $this->formatResponse($res['result']);
+        if ($res['errmsg'] == 'error') {
+            //echo "请网页登录 smartqq" . PHP_EOL;
+            sleep(2);
+            $this->poll2();
+        } else if ($res['retcode'] == 0) {
+            return $this->formatResponse($res['result'][0]);
+        } else if ($res['retcode'] == 100000) {
+            $this->qqlogin();
         } else {
-            echo "获取失败";
-            print_r($res);
+            echo "获取失败,重新拉取" . PHP_EOL;
+            sleep(2);
             $this->poll2();
         }
+    }
+
+    public function sendFriendMessage($to_id, $content)
+    {
+        return $this->sendMessage(self::FRIEND_MESSAGE, $to_id, $content, self::FRIEND);
+    }
+
+    public function sendGroupMessage($group_uin, $content)
+    {
+        return $this->sendMessage(self::GROUP_MESSAGE, $group_uin, $content, self::GROUP);
+    }
+
+    public function sendDiscuMessage($did, $content)
+    {
+        return $this->sendMessage(self::DISCU_MESSAGE, $did, $content, self::DISCU);
+    }
+
+    private function sendMessage($url, $to_id, $content, $type)
+    {
+        $params = "r=" . '{"to":%d,"content":"[\"%s\",[\"font\",{\"name\":\"宋体\",\"size\":10,\"style\":[0,0,0],\"color\":\"000000\"}]]","face":540,"clientid":53999199,"msg_id":79950001,"psessionid":"%s"}';
+
+        $conversion = function ($str) use ($params) {
+            return strtr($params, ['to' => $str]);
+        };
+
+        switch ($type) {
+            case self::FRIEND:
+                $params = $conversion('to');
+                break;
+            case self::GROUP:
+                $params = $conversion('group_uin');
+                break;
+            case self::DISCU:
+                $params = $conversion('did');
+                break;
+        }
+
+        $params = sprintf($params, $to_id, $content, static::$storage->getAuth('psessionid'));
+        $res = Curl::post($url, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",
+            CURLOPT_POSTFIELDS => $params
+        ]);
+
+        $res = json_decode($res, true);
+
+        if ($res['retcode'] == 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function getFriends()
+    {
+        $params = "r=" . json_encode([
+                'vfwebqq' => static::$storage->getAuth('vfwebqq'),
+                'hash' => Tool::hash(static::$storage->getAuth('uin'), static::$storage->getCookie('ptwebqq')),
+            ], JSON_FORCE_OBJECT);
+        var_dump(static::$storage->getAuth('uin'), static::$storage->getCookie('ptwebqq'), $params);
+        $res = Curl::post(self::FRIENDS_LIST, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1",
+            CURLOPT_POSTFIELDS => $params
+        ]);
+
+        $res = json_decode($res, true);
+
+        print_r($res);
     }
 
     protected function formatResponse($result)
     {
         switch ($result['poll_type']) {
             case 'message':
-                return new Message($result);
+                return new Friend($result);
+            case 'group_message':
+                return new Group($result);
+            case 'discu_message':
+                return new Discu($result);
         }
     }
 
