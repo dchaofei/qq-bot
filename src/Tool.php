@@ -34,6 +34,25 @@ class Tool
 
     public static function hash($uin, $ptwebqq)
     {
-        // TODO 待实现
+        $n   = [0, 0, 0, 0];
+        $len = strlen($ptwebqq);
+        echo "len: $len".PHP_EOL;
+        for ($i = 0; $i < $len; $i++) {
+            $n[$i % 4] ^= ord($ptwebqq{$i});
+        }
+        $u    = ["EC", "OK"];
+        $v    = [];
+        $v[0] = $uin >> 24 & 255 ^ ord($u['0']['0']);
+        $v[1] = $uin >> 16 & 255 ^ ord($u['0']['1']);
+        $v[2] = $uin >> 8 & 255 ^ ord($u['1']['0']);
+        $v[3] = $uin & 255 ^ ord($u['1']['1']);
+        $N    = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"];
+        $V    = "";
+        for ($i = 0; $i < 8; $i++) {
+            $t = $i % 2 == 0 ? $n[$i >> 1] : $v[$i >> 1];
+            $V .= $N[$t >> 4 & 15];
+            $V .= $N[$t & 15];
+        }
+        return $V;
     }
 }

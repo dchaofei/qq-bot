@@ -167,7 +167,7 @@ class QqBotApi
 
         if ($res["retcode"] == 0) {
             echo "获取 vfwebqq 成功" . PHP_EOL;
-            static::$storage->setAuth('vfweqq', $res['result']['vfwebqq']);
+            static::$storage->setAuth('vfwebqq', $res['result']['vfwebqq']);
         } else {
             die("获取 vfwebqq 失败");
         }
@@ -291,7 +291,7 @@ class QqBotApi
     {
         $params = "r=" . json_encode([
                 'vfwebqq' => static::$storage->getAuth('vfwebqq'),
-                'hash' => Tool::hash(static::$storage->getAuth('uin'), static::$storage->getCookie('ptwebqq')),
+                'hash' => Tool::hash(static::$storage->getAuth('uin'), ""),
             ], JSON_FORCE_OBJECT);
         var_dump(static::$storage->getAuth('uin'), static::$storage->getCookie('ptwebqq'), $params);
         $res = Curl::post(self::FRIENDS_LIST, [

@@ -6,7 +6,7 @@ namespace QqBot\Extension;
 
 class TuLing
 {
-    private static $apiKey = "";
+    private static $apiKey = "992acd97801e4541a3dbd1a0e478c8ba";
     private static $userId = "1";
 
     const URL = "http://openapi.tuling123.com/openapi/api/v2";
