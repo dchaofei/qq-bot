@@ -13,9 +13,6 @@ $bot = new Bot();
 //$message = $bot->getMessage();
 //print_r($message);
 
-$bot->getFriends();exit;
-//$bot->sendFriendMessage('1771972612', '你好');
-//$bot->sendGroupMessage('1916166069', '测试群消息');
 
 while (true) {
     $message = $bot->getMessage();
@@ -24,11 +21,11 @@ while (true) {
     } else {
         echo $message->poll_type . ": " . $message->send_uin . ": " .$message->content . PHP_EOL;
     }
-    if ($message->from_uin == '2111051074' && $message->send_uin != '1203375063') {
+    if ($message->from_uin == '689992268' && $message->send_uin != '1203375063') {
         $res = TuLing::request($message->content);
 
         foreach ($res as $key => $item) {
-            $bot->sendDiscuMessage('2111051074', $item);
+            $bot->sendGroupMessage('689992268', $item);
         }
     }
 }

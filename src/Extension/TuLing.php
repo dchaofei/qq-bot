@@ -31,8 +31,8 @@ class TuLing
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($params));
         $res = curl_exec($ch);
+        file_put_contents('tmp/tuling.log', $res . "\n\n", FILE_APPEND);
         $res = json_decode($res, true);
-        print_r($res);
 
         if (isset($res['intent']['code']) && strpos($res['intent']['code'], '4000') === false) {
             foreach ($res['results'] as $key => $value) {

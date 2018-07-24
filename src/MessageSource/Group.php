@@ -51,8 +51,10 @@ class Group extends MessageAbstract
     {
         $iterator = new \RecursiveArrayIterator($array);
         foreach ($iterator as $key => $value) {
-            if (empty(trim($value)) || is_array($value)) {
+
+            if (empty($value) || is_array($value)) {
                 unset($array[$key]);
+                continue;
             }
 
             if (stripos($value, '@') === 0) {

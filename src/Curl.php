@@ -22,7 +22,6 @@ class Curl
         curl_setopt_array($ch, $options);
         $res = curl_exec($ch);
         curl_close($ch);
-        echo $res;
         if ($res) {
             list($header, $body) = explode("\r\n\r\n", $res);
             static::setCookie($header);

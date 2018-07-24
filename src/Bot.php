@@ -4,15 +4,22 @@
 namespace QqBot;
 
 
+use QqBot\Contact\Friends;
+use QqBot\Contact\Groups;
+
 class Bot
 {
     public static $qq;
 
     public $qq_instance;
 
+    /** @var QqBotApi */
+    static $bot;
+
     public function __construct()
     {
         $this->qq_instance = new QqBotApi();
+        static::$bot = $this->qq_instance;
     }
 
     public static function getNickName()
@@ -45,8 +52,24 @@ class Bot
         $this->qq_instance->sendDiscuMessage($to_id, $content);
     }
 
+    /**
+     * @return Friends[]
+     */
     public function getFriends()
     {
-        $this->qq_instance->getFriends();
+        return $this->qq_instance->getFriends();
+    }
+
+    /**
+     * @return Groups[]
+     */
+    public function getGroups()
+    {
+        return $this->qq_instance->getGroups();
+    }
+
+    public function getDiscus()
+    {
+        return $this->qq_instance->getDiscus();
     }
 }

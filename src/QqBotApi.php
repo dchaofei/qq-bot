@@ -9,11 +9,12 @@
 namespace QqBot;
 
 
-use QqBot\Message\Message;
+use QqBot\Contact\Friends;
+use QqBot\Contact\Groups;
+use QqBot\Contact\MyIterate;
 use QqBot\MessageSource\Discu;
 use QqBot\MessageSource\Friend;
 use QqBot\MessageSource\Group;
-use QqBot\MessageSource\MessageAbstract;
 use QqBot\Storage\Redis;
 use QqBot\Storage\StorageInterface;
 
@@ -37,9 +38,24 @@ class QqBotApi
     const GROUP_MESSAGE = "http://d1.web2.qq.com/channel/send_qun_msg2";
     // 发送讨论组消息
     const DISCU_MESSAGE = "http://d1.web2.qq.com/channel/send_discu_msg2";
-
     // 获取好友列表
     const FRIENDS_LIST = "http://s.web2.qq.com/api/get_user_friends2";
+    // 获取好友详细信息
+    const FRIEND_INFO = "http://s.web2.qq.com/api/get_friend_info2";
+    // 获取在线状态
+    const ONLINE_STATUS = "http://d1.web2.qq.com/channel/get_online_buddies2";
+    // 获取群列表
+    const GROUPS_LIST = "http://s.web2.qq.com/api/get_group_name_list_mask2";
+    // 获取群详细信息
+    const GROUP_INFO = "http://s.web2.qq.com/api/get_group_info_ext2";
+    // 获取讨论组列表
+    const DISCUS = "http://s.web2.qq.com/api/get_discus_list";
+    // 获取讨论组详细信息
+    const DISCU_INFO = "http://d1.web2.qq.com/channel/get_discu_info";
+    // 获取最近会话列表
+    const RECENT_SESSIONS = "http://d1.web2.qq.com/channel/get_recent_list2";
+    // 获取自身
+    const SELF_INFO = "http://s.web2.qq.com/api/get_self_info2&t=0.1";
 
     const CLIENT_ID = 53999199;
 
@@ -109,7 +125,6 @@ class QqBotApi
             'action' => '1-0-1532142989455',
             'js_ver' => '10276',
             'js_type' => '1',
-            //'login_sig' => 'c7LY6*fk2GW-R40BizPrWLRHN0a8xPxx9YZOXgiEL0opf3Pd2jfkEijXPVslRIOW',
             'pt_uistyle' => '40',
             'aid' => '501004106',
             'daid' => '164',
@@ -220,10 +235,9 @@ class QqBotApi
             CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",
             CURLOPT_POSTFIELDS => $params
         ]);
+        file_put_contents('tmp/error.log', $res . "\n\n", FILE_APPEND);
         $res = json_decode($res, true);
         if ($res['errmsg'] == 'error') {
-            //echo "请网页登录 smartqq" . PHP_EOL;
-            sleep(2);
             $this->poll2();
         } else if ($res['retcode'] == 0) {
             return $this->formatResponse($res['result'][0]);
@@ -287,13 +301,17 @@ class QqBotApi
         return false;
     }
 
+    /**
+     * 获取所有好友
+     *
+     * @return MyIterate
+     */
     public function getFriends()
     {
         $params = "r=" . json_encode([
                 'vfwebqq' => static::$storage->getAuth('vfwebqq'),
                 'hash' => Tool::hash(static::$storage->getAuth('uin'), ""),
             ], JSON_FORCE_OBJECT);
-        var_dump(static::$storage->getAuth('uin'), static::$storage->getCookie('ptwebqq'), $params);
         $res = Curl::post(self::FRIENDS_LIST, [
             CURLOPT_COOKIE => $this->buildCookie(),
             CURLOPT_REFERER => "http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1",
@@ -301,8 +319,206 @@ class QqBotApi
         ]);
 
         $res = json_decode($res, true);
+        if ($res['retcode'] == 0) {
+            return new MyIterate(new Friends($res['result']));
+        }
+        $this->qqlogin();
+        return $this->getFriends();
+    }
 
-        print_r($res);
+    public function getFriendInfo($uin)
+    {
+        $params = [
+            'tuin' => $uin,
+            'vfwebqq' => static::$storage->getAuth('vfwebqq'),
+            'clientid' => self::CLIENT_ID,
+            'psessionid' => static::$storage->getAuth('psessionid'),
+            't' => 0.1
+        ];
+
+        $url = self::FRIEND_INFO . "?" . http_build_query($params);
+
+        $res = Curl::get($url, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1",
+        ]);
+
+        $res = json_decode($res, true);
+
+        if ($res['retcode'] == 0) {
+            // TODO 待封装结果
+            return $res['result'];
+        }
+
+        return false;
+    }
+
+    public function getOnlineStatus($uin)
+    {
+        $params = [
+            'tuin' => $uin,
+            'vfwebqq' => static::$storage->getAuth('vfwebqq'),
+            'clientid' => self::CLIENT_ID,
+            'psessionid' => static::$storage->getAuth('psessionid'),
+            't' => 0.1
+        ];
+
+        $url = self::ONLINE_STATUS . "?" . http_build_query($params);
+
+        $res = Curl::get($url, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",
+        ]);
+
+        $res = json_decode($res, true);
+
+        if ($res['retcode'] == 0) {
+            return $res['result'];
+        }
+
+        return false;
+    }
+
+    public function getGroups()
+    {
+        $params = [
+            'vfwebqq' => static::$storage->getAuth('vfwebqq'),
+            'hash' => Tool::hash(static::$storage->getAuth('uin'), ""),
+            't' => 0.1
+        ];
+
+        $url = self::GROUPS_LIST . "?" . http_build_query($params);
+
+        $res = Curl::get($url, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",
+        ]);
+
+        $res = json_decode($res, true);
+        if ($res['retcode'] == 0) {
+            return new MyIterate(new Groups($res['result']));
+        }
+        $this->qqlogin();
+        return $this->getGroups();
+    }
+
+    public function getGroupInfo($code)
+    {
+        $params = [
+            'gcode' => $code,
+            'vfwebqq' => static::$storage->getAuth('vfwebqq'),
+            't' => 0.1
+        ];
+
+        $url = self::GROUP_INFO . "?" . http_build_query($params);
+
+        $res = Curl::get($url, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://s.web2.qq.com/proxy.html?v=20130916001&callback=1&id=1",
+        ]);
+
+        $res = json_decode($res, true);
+
+        if ($res['retcode'] == 0) {
+            // TODO 待封装结果
+            return $res['result'];
+        }
+        $this->qqlogin();
+        return $this->getGroupInfo($code);
+    }
+
+    public function getDiscus()
+    {
+        $params = [
+            'psessionid' => static::$storage->getAuth('psessionid'),
+            'vfwebqq' => static::$storage->getAuth('vfwebqq'),
+            't' => 0.1
+        ];
+
+        $url = self::DISCUS . "?" . http_build_query($params);
+
+        $res = Curl::get($url, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",
+        ]);
+
+        $res = json_decode($res, true);
+
+        if ($res['retcode'] == 0) {
+            // TODO 待封装结果
+            return $res['result'];
+        }
+        $this->qqlogin();
+        return $this->getDiscus();
+    }
+
+    public function getDiscuInfo($did)
+    {
+        $params = [
+            'psessionid' => static::$storage->getAuth('psessionid'),
+            'vfwebqq' => static::$storage->getAuth('vfwebqq'),
+            't' => 0.1,
+            'clientid' => self::CLIENT_ID,
+            'did' => $did,
+        ];
+
+        $url = self::DISCU_INFO . "?" . http_build_query($params);
+
+        $res = Curl::get($url, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",
+        ]);
+
+        $res = json_decode($res, true);
+
+        if ($res['retcode'] == 0) {
+            // TODO 待封装结果
+            return $res['result'];
+        }
+        $this->qqlogin();
+        return $this->getDiscus();
+    }
+
+    public function getRecentSessions()
+    {
+        $params = [
+            'psessionid' => static::$storage->getAuth('psessionid'),
+            'vfwebqq' => static::$storage->getAuth('vfwebqq'),
+            't' => 0.1,
+        ];
+
+        $url = self::RECENT_SESSIONS . "?" . http_build_query($params);
+
+        $res = Curl::get($url, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",
+        ]);
+
+        $res = json_decode($res, true);
+
+        if ($res['retcode'] == 0) {
+            // TODO 待封装结果
+            return $res['result'];
+        }
+        $this->qqlogin();
+        return $this->getRecentSessions();
+    }
+
+    public function getSelfInfo()
+    {
+        $res = Curl::get(self::SELF_INFO, [
+            CURLOPT_COOKIE => $this->buildCookie(),
+            CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",
+        ]);
+
+        $res = json_decode($res, true);
+
+        if ($res['retcode'] == 0) {
+            // TODO 待封装结果
+            return $res['result'];
+        }
+        $this->qqlogin();
+        return $this->getSelfInfo();
     }
 
     protected function formatResponse($result)
