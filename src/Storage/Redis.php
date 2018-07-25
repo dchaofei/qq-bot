@@ -30,7 +30,6 @@ class Redis implements StorageInterface
         $this->redis = new \Redis();
         $this->redis->connect('127.0.0.1');
         $this->redis->auth('123456');
-        //$this->clear();
     }
 
     public function setPreFix($value)
@@ -123,9 +122,7 @@ class Redis implements StorageInterface
 
     public function clear()
     {
-        //TODO 未实现
-        $this->redis->hDel($this->_authName);
-        $this->redis->hDel($this->_cookieName);
+        $this->redis->del($this->_prefix . "*");
     }
 
 }

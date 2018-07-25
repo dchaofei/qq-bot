@@ -6,7 +6,7 @@ namespace QqBot\Extension;
 
 class TuLing
 {
-    private static $apiKey = "992acd97801e4541a3dbd1a0e478c8ba";
+    private static $apiKey = "";
     private static $userId = "1";
 
     const URL = "http://openapi.tuling123.com/openapi/api/v2";
@@ -34,7 +34,8 @@ class TuLing
         file_put_contents('tmp/tuling.log', $res . "\n\n", FILE_APPEND);
         $res = json_decode($res, true);
 
-        if (isset($res['intent']['code']) && strpos($res['intent']['code'], '4000') === false) {
+        //if (isset($res['intent']['code']) && strpos($res['intent']['code'], '4000') === false) {
+        if (isset($res['intent']['code'])) {
             foreach ($res['results'] as $key => $value) {
                 if ($value['resultType'] == 'news') {
                     foreach ($value['values']['news'] as $item) {
@@ -49,7 +50,7 @@ class TuLing
                 $str[] = implode("\n", $value['values']);
             }
 
-
+            print_r([implode("\n", array_slice($str, 0, 8))]);
             return [implode("\n", array_slice($str, 0, 8))];
         }
 

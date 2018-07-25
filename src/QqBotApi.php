@@ -15,6 +15,7 @@ use QqBot\Contact\MyIterate;
 use QqBot\MessageSource\Discu;
 use QqBot\MessageSource\Friend;
 use QqBot\MessageSource\Group;
+use QqBot\Storage\File;
 use QqBot\Storage\Redis;
 use QqBot\Storage\StorageInterface;
 
@@ -62,19 +63,21 @@ class QqBotApi
     /** @var $storage StorageInterface */
     public static $storage;
 
-    public function __construct()
+    public function __construct($storage)
     {
-        static::$storage = new Redis();
+        if ($storage = 'file') {
+            $storage = new File();
+        } elseif ($storage = 'redis') {
+            $storage = new Redis();
+        }
+
+        static::$storage = $storage;
         $this->init();
     }
 
     public function init()
     {
-        // 这四步为登录
-        //$this->xLogin();
-        //$this->showQr();
-        //$this->getVfWebqq();
-        //$this->getPsessionidAndUin();
+
     }
 
     public function qqlogin()
@@ -85,7 +88,7 @@ class QqBotApi
         $this->getPsessionidAndUin();
     }
 
-    public function xLogin()
+    private function xLogin()
     {
         $res = Curl::get(self::XLOGIN);
 
@@ -94,7 +97,7 @@ class QqBotApi
         }
     }
 
-    public function showQr()
+    private function showQr()
     {
         $file_name = __DIR__ . '/qr.png';
         @unlink($file_name);
@@ -237,12 +240,17 @@ class QqBotApi
         ]);
         file_put_contents('tmp/error.log', $res . "\n\n", FILE_APPEND);
         $res = json_decode($res, true);
+        $start_time = time();
         if ($res['errmsg'] == 'error') {
+            if (time() - $start_time < 2) {
+                die('请网页登录 webQQ 后重新启动。');
+            }
             $this->poll2();
         } else if ($res['retcode'] == 0) {
             return $this->formatResponse($res['result'][0]);
         } else if ($res['retcode'] == 100000) {
             $this->qqlogin();
+            $this->poll2();
         } else {
             echo "获取失败,重新拉取" . PHP_EOL;
             sleep(2);
@@ -350,7 +358,7 @@ class QqBotApi
             return $res['result'];
         }
 
-        return false;
+        return null;
     }
 
     public function getOnlineStatus($uin)
@@ -536,6 +544,10 @@ class QqBotApi
     protected function buildCookie()
     {
         $cookies = static::$storage->getCookieAll();
+
+        if (empty($cookies)) {
+            return '';
+        }
 
         $str = '';
         foreach ($cookies as $key => $value) {

@@ -16,11 +16,18 @@ class Bot
     /** @var QqBotApi */
     static $bot;
 
-    public function __construct()
+    private $default_storage = 'file';
+
+    public function __construct($config = [])
     {
-        $this->qq_instance = new QqBotApi();
+        if ($config['storage']) {
+            $config['storage'] = $this->default_storage;
+        }
+
+        $this->qq_instance = new QqBotApi($config['storage']);
         static::$bot = $this->qq_instance;
     }
+
 
     public static function getNickName()
     {
@@ -53,6 +60,8 @@ class Bot
     }
 
     /**
+     * 获取好友列表
+     *
      * @return Friends[]
      */
     public function getFriends()
@@ -61,6 +70,8 @@ class Bot
     }
 
     /**
+     * 获取群列表
+     *
      * @return Groups[]
      */
     public function getGroups()
@@ -68,8 +79,25 @@ class Bot
         return $this->qq_instance->getGroups();
     }
 
+    /**
+     * 获取论坛列表
+     *
+     * @return mixed
+     */
     public function getDiscus()
     {
         return $this->qq_instance->getDiscus();
+    }
+
+
+    /**
+     * 获取好友详细信息
+     *
+     * @param $uin
+     * @return array || null
+     */
+    public function getFriendInfo($uin)
+    {
+        return $this->qq_instance->getFriendInfo($uin);
     }
 }

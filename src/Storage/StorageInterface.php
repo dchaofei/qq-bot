@@ -21,4 +21,6 @@ interface StorageInterface
 
     public function setNickName($value);
     public function getNickName();
+
+    public function clear();
 }

@@ -14,19 +14,24 @@ $bot = new Bot();
 //print_r($message);
 
 
+//while (true) {
+//    $message = $bot->getMessage();
+//    if ($message->send_uin == $message->to_uin) {
+//        echo "我说: " . $message->poll_type . ": " . $message->send_uin . ": " .$message->content . PHP_EOL;
+//    } else {
+//        echo $message->poll_type . ": " . $message->send_uin . ": " .$message->content . PHP_EOL;
+//    }
+//    if ($message->from_uin == '693173041' && $message->send_uin != '1203375063') {
+//        $res = TuLing::request($message->content);
+//
+//        foreach ($res as $key => $item) {
+//            $bot->sendGroupMessage('693173041', $item);
+//        }
+//    }
+//}
+
 while (true) {
     $message = $bot->getMessage();
-    if ($message->send_uin == $message->to_uin) {
-        echo "我说: " . $message->poll_type . ": " . $message->send_uin . ": " .$message->content . PHP_EOL;
-    } else {
-        echo $message->poll_type . ": " . $message->send_uin . ": " .$message->content . PHP_EOL;
-    }
-    if ($message->from_uin == '689992268' && $message->send_uin != '1203375063') {
-        $res = TuLing::request($message->content);
-
-        foreach ($res as $key => $item) {
-            $bot->sendGroupMessage('689992268', $item);
-        }
-    }
+    echo $message->poll_type . ": " . $message->send_uin . ": " .$message->content . PHP_EOL;
 }
 
