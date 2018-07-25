@@ -275,6 +275,7 @@ class QqBotApi
 
     private function sendMessage($url, $to_id, $content, $type)
     {
+        echo $type . "\n";
         $params = "r=" . '{"to":%d,"content":"[\"%s\",[\"font\",{\"name\":\"宋体\",\"size\":10,\"style\":[0,0,0],\"color\":\"000000\"}]]","face":540,"clientid":53999199,"msg_id":79950001,"psessionid":"%s"}';
 
         $conversion = function ($str) use ($params) {
@@ -294,6 +295,7 @@ class QqBotApi
         }
 
         $params = sprintf($params, $to_id, $content, static::$storage->getAuth('psessionid'));
+
         $res = Curl::post($url, [
             CURLOPT_COOKIE => $this->buildCookie(),
             CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",

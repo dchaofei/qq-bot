@@ -34,7 +34,7 @@ class Group extends MessageAbstract
         $this->msg_id = $data['msg_id'];
     }
 
-    private function setContent($content)
+    protected function setContent($content)
     {
         unset($content[0]);
         $this->filterArrayAndNull($content);
