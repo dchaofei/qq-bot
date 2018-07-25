@@ -233,6 +233,7 @@ class QqBotApi
                 'key' => '',
             ], JSON_FORCE_OBJECT);
 
+        $start_time = time();
         $res = Curl::post(self::POLL, [
             CURLOPT_COOKIE => $this->buildCookie(),
             CURLOPT_REFERER => "http://d1.web2.qq.com/proxy.html?v=20151105001&callback=1&id=2",
@@ -240,7 +241,6 @@ class QqBotApi
         ]);
         file_put_contents('tmp/error.log', $res . "\n\n", FILE_APPEND);
         $res = json_decode($res, true);
-        $start_time = time();
         if ($res['errmsg'] == 'error') {
             if (time() - $start_time < 2) {
                 die('请网页登录 webQQ 后重新启动。');
